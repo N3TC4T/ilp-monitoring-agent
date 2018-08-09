@@ -1,5 +1,5 @@
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 from setuptools.command.install import install
 
 
@@ -37,7 +37,7 @@ setup(
     keywords="interledger agent peer monitoring",
     url="http://packages.python.org/ilp_monitor_agent",
     scripts=['bin/ilp-agent'],
-    packages=['ilp_monitoring_agent'],
+    packages=find_packages(),
     install_requires=[
         'requests', 'six',
     ],
