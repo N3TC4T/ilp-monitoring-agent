@@ -8,7 +8,7 @@ import os
 import sys
 import time
 import signal
-from utils import log
+from .utils import log
 
 
 class Daemon(object):

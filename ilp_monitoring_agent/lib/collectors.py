@@ -3,7 +3,7 @@ import multiprocessing
 import platform
 import datetime
 import requests
-from utils import log
+from .utils import log
 
 
 def get_status():

@@ -7,16 +7,14 @@ import json
 from requests import Session
 from requests.exceptions import ConnectionError
 
-from lib.utils import get_conf_pat, log
-from lib.daemon import Daemon
-import lib.collectors
+from .lib import utils, daemon, collectors
 
 
 class NSConf:
     def __init__(self):
-        self.server_ip = get_conf_pat("server", "ip")
-        self.server_port = get_conf_pat("server", "port")
-        self.agent_interval = get_conf_pat("agent", "interval")
+        self.server_ip = utils.get_conf_pat("server", "ip")
+        self.server_port = utils.get_conf_pat("server", "port")
+        self.agent_interval = utils.get_conf_pat("agent", "interval")
 
 
 class InfoGather:
@@ -38,8 +36,8 @@ class InfoGather:
         self.agent_data['capture_time'] = self.now_capture_time
 
     def run_all_collectors(self):
-        for collector in dir(lib.collectors):
-            func = getattr(lib.collectors, collector)
+        for collector in dir(collectors):
+            func = getattr(collectors, collector)
             if callable(func):
                 self.agent_data[func.__name__.split('_')[1]] = func()
         return self.agent_data
@@ -58,8 +56,8 @@ class DataDelivery(Session):
                 return False
         if counter > self.max_retry:
             return False
-        DELAY = 2 * counter
-        log.error("Got recoverable error [%s] from %s %s, retry #%s in %ss" % (error, request, url, counter, DELAY))
+        DELAY = 10 * counter
+        utils.log.error("Got recoverable error [%s] from %s %s, retry #%s in %ss" % (error, request, url, counter, DELAY))
         time.sleep(DELAY)
         return True
 
@@ -70,7 +68,10 @@ class DataDelivery(Session):
             try:
                 r = super(DataDelivery, self).post(url, **kwargs)
             except ConnectionError as e:
-                r = e.message
+                if hasattr(e, 'message'):
+                    r = e.message
+                else:
+                    r = e
                 if self.__recoverable(r, url, 'POST', counter):
                     continue
                 else:
@@ -78,7 +79,7 @@ class DataDelivery(Session):
             return r
 
 
-class AgentDaemon(Daemon):
+class AgentDaemon(daemon.Daemon):
     def run(self):
         apm = NSConf()
         while True:
@@ -86,8 +87,8 @@ class AgentDaemon(Daemon):
             info_data = ig.run_all_collectors()
             try:
                 delivery = DataDelivery()
-                req = delivery.post("http://{IP}:{PORT}/".format(IP=apm.server_ip, PORT=apm.server_port),
+                delivery.post("http://{IP}:{PORT}/".format(IP=apm.server_ip, PORT=apm.server_port),
                                     json=json.dumps(info_data))
             except Exception as e:
-                log.error(e)
+                utils.log.error(e)
             time.sleep(int(apm.agent_interval))
