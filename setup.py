@@ -41,7 +41,7 @@ setup(
     install_requires=[
         'requests', 'six',
     ],
-    long_description=read('README'),
+    long_description=read('README.md'),
     cmdclass={
         'install': InstallCommand,
     },
