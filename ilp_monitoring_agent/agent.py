@@ -4,6 +4,7 @@
 import socket
 import time
 import json
+import pkg_resources
 from requests import Session
 from requests.exceptions import ConnectionError
 
@@ -23,6 +24,7 @@ class InfoGather:
         self.agent_data = dict()
         self.now_capture_time = int(time.time())
         self.hostname = socket.gethostname()
+        self.agent_version = pkg_resources.get_distribution("ilp_monitoring_agent").version
         try:
             csock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             csock.connect(('8.8.8.8', 80))
@@ -31,6 +33,8 @@ class InfoGather:
             self.ip = addr
         except socket.error:
             self.ip = '127.0.0.1'
+
+        self.agent_data['agent_version'] = self.agent_version
         self.agent_data['hostname'] = self.hostname
         self.agent_data['ip'] = self.ip
         self.agent_data['capture_time'] = self.now_capture_time
@@ -87,7 +91,7 @@ class AgentDaemon(daemon.Daemon):
             info_data = ig.run_all_collectors()
             try:
                 delivery = DataDelivery()
-                delivery.post("http://{IP}:{PORT}/".format(IP=apm.server_ip, PORT=apm.server_port),
+                delivery.post("http://{IP}:{PORT}/api/agent".format(IP=apm.server_ip, PORT=apm.server_port),
                                     json=json.dumps(info_data))
             except Exception as e:
                 utils.log.error(e)

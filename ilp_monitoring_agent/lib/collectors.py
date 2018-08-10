@@ -6,9 +6,19 @@ import requests
 from .utils import log
 
 
-def get_status():
+def get_accounts():
     try:
-        r = requests.get('http://localhost:7769/status')
+        r = requests.get('http://localhost:7769/accounts')
+        data = r.json()
+    except Exception as err:
+        log.error(err)
+        data = {}
+    return data
+
+
+def get_routing():
+    try:
+        r = requests.get('http://localhost:7769/routing')
         data = r.json()
     except Exception as err:
         log.error(err)

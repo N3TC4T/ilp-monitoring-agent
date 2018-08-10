@@ -18,7 +18,7 @@ class Daemon(object):
     Usage: subclass the Daemon class and override the run() method
     """
 
-    def __init__(self, pidfile, stdin=os.devnull,
+    def __init__(self, pidfile='/var/run/ilp-agent.pid', stdin=os.devnull,
                  stdout=os.devnull, stderr=os.devnull,
                  home_dir='.', umask=0o22, verbose=1,
                  use_gevent=False, use_eventlet=False):
