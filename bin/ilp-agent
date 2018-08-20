@@ -3,7 +3,7 @@ import sys
 from ilp_monitoring_agent import AgentDaemon
 
 if __name__ == "__main__":
-    daemon = AgentDaemon('/tmp/ilp-monitor.pid')
+    daemon = AgentDaemon()
     if len(sys.argv) == 2:
         if 'start' == sys.argv[1]:
             daemon.start()

@@ -7,8 +7,13 @@ import json
 import pkg_resources
 from requests import Session
 from requests.exceptions import ConnectionError
+import geocoder
 
 from .lib import utils, daemon, collectors
+
+# get location info of server
+# we just do it at the agent startup
+geoInfo = geocoder.ip('me')
 
 
 class NSConf:
@@ -16,6 +21,7 @@ class NSConf:
         self.server_ip = utils.get_conf_pat("server", "ip")
         self.server_port = utils.get_conf_pat("server", "port")
         self.agent_interval = utils.get_conf_pat("agent", "interval")
+        self.agent_token = utils.get_conf_pat("agent", "token")
 
 
 class InfoGather:
@@ -38,6 +44,7 @@ class InfoGather:
         self.agent_data['hostname'] = self.hostname
         self.agent_data['ip'] = self.ip
         self.agent_data['capture_time'] = self.now_capture_time
+        self.agent_data['latlng'] = geoInfo.latlng
 
     def run_all_collectors(self):
         for collector in dir(collectors):
@@ -61,7 +68,8 @@ class DataDelivery(Session):
         if counter > self.max_retry:
             return False
         DELAY = 10 * counter
-        utils.log.error("Got recoverable error [%s] from %s %s, retry #%s in %ss" % (error, request, url, counter, DELAY))
+        utils.log.error(
+            "Got recoverable error [%s] from %s %s, retry #%s in %ss" % (error, request, url, counter, DELAY))
         time.sleep(DELAY)
         return True
 
@@ -90,9 +98,18 @@ class AgentDaemon(daemon.Daemon):
             ig = InfoGather()
             info_data = ig.run_all_collectors()
             try:
+                try:
+                    prefix = info_data["accounts"]["address"]
+                except KeyError:
+                    raise Exception("PREFIX not present , check your connector connectivity")
+
                 delivery = DataDelivery()
-                delivery.post("http://{IP}:{PORT}/api/agent".format(IP=apm.server_ip, PORT=apm.server_port),
-                                    json=json.dumps(info_data))
+                delivery.headers.update({
+                    'X-TOKEN': apm.agent_token,
+                    'X-PREFIX': prefix
+                })
+                delivery.post("http://{IP}:{PORT}/webhook/agent".format(IP=apm.server_ip, PORT=apm.server_port),
+                              json=json.dumps(info_data))
             except Exception as e:
                 utils.log.error(e)
             time.sleep(int(apm.agent_interval))

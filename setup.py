@@ -18,6 +18,7 @@ def config():
                     "\ndebug = True"
                     "\n[agent]"
                     "\ninterval = 60"
+                    "\ntoken = TOKEN"
                     )
 
 
@@ -39,7 +40,7 @@ setup(
     scripts=['bin/ilp-agent'],
     packages=find_packages(),
     install_requires=[
-        'requests', 'six',
+        'requests', 'six', 'geocoder'
     ],
     long_description=read('README.md'),
     cmdclass={
